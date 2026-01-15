@@ -134,6 +134,28 @@ def health_check():
     return {"status": "ok", "service": "HookahPlace Noble API"}
 
 
+@app.get("/api/reservations")
+def get_reservations():
+    """Получение всех активных бронирований для админки"""
+    try:
+        reservations = ReservationRepository.get_active()
+        return reservations
+    except Exception as e:
+        logger.error(f"Error fetching reservations: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reservations/upcoming")
+def get_upcoming_reservations():
+    """Получение будущих бронирований"""
+    try:
+        reservations = ReservationRepository.get_upcoming()
+        return reservations
+    except Exception as e:
+        logger.error(f"Error fetching upcoming reservations: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/tables/available")
 def get_available_tables_endpoint(date: str, time: str, party_size: int):
     """
