@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
-const galleryImages = [
-    '/assets/gallery/Кальянная (1).jpg',
-    '/assets/gallery/Кальянная (5).jpg',
-    '/assets/gallery/Кальянная (10).jpg',
-    '/assets/gallery/Кальянная (11).jpg',
-    '/assets/gallery/Кальянная (12).jpg',
-    '/assets/gallery/Кальянная (14).jpg',
-    '/assets/gallery/Кальянная (16).jpg',
-    '/assets/gallery/Кальянная (17).jpg',
-];
+// Динамический импорт всех изображений из папки assets/gallery
+const modules = import.meta.glob('../assets/gallery/*.{png,jpg,jpeg,webp,svg}', { eager: true });
+
+// Преобразуем модули в массив путей и сортируем
+const galleryImages = Object.values(modules)
+    .map(mod => mod.default)
+    .sort();
 
 const Gallery = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
