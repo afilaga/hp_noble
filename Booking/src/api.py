@@ -181,7 +181,6 @@ def get_available_tables_endpoint(date: str, time: str, party_size: int):
 
 
 @app.post("/api/reservation/create")
-@app.post("/api/reservations")  # Support both paths
 async def create_reservation(data: ReservationCreate):
     """
     Создание бронирования с сайта.
