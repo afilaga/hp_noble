@@ -14,7 +14,8 @@ from database import (
     TableRepository, 
     init_db, 
     CustomerRepository,
-    AdminRepository
+    AdminRepository,
+    ReviewRepository
 )
 
 # Загрузка переменных из .env
@@ -136,46 +137,64 @@ def health_check():
 
 @app.get("/api/reservations")
 def get_reservations():
-    """Получение всех активных бронирований для админки"""
+    """Получение списка активных бронирований"""
     try:
-        reservations = ReservationRepository.get_active()
-        return reservations
+        return ReservationRepository.get_active()
     except Exception as e:
         logger.error(f"Error fetching reservations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/reservations/upcoming")
-def get_upcoming_reservations():
-    """Получение будущих бронирований"""
-    try:
-        reservations = ReservationRepository.get_upcoming()
-        return reservations
-    except Exception as e:
-        logger.error(f"Error fetching upcoming reservations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.get("/api/reservations/all")
 def get_all_reservations():
-    """Получение вообще всех бронирований для истории"""
+    """История всех бронирований"""
     try:
-        # В репозитории нет метода get_all, используем get_active или расширим
-        # Для начала отдадим активные, так как они самые важные
+        # Поскольку в репозитории нет get_all, возвращаем активные
         return ReservationRepository.get_active()
     except Exception as e:
         logger.error(f"Error fetching all reservations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/reservations/download")
+def download_reservations():
+    """Скачать бронирования в CSV"""
+    try:
+        from fastapi.responses import Response
+        csv_data = ReservationRepository.export_csv()
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=reservations.csv"}
+        )
+    except Exception as e:
+        logger.error(f"Error downloading reservations: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/reviews")
 def get_reviews():
-    """Получение списка всех отзывов"""
+    """Получение списка отзывов"""
     try:
-        reviews = ReviewRepository.get_all()
-        return reviews
+        return ReviewRepository.get_all()
     except Exception as e:
         logger.error(f"Error fetching reviews: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reviews/download")
+def download_reviews():
+    """Скачать отзывы в CSV"""
+    try:
+        from fastapi.responses import Response
+        csv_data = ReviewRepository.export_csv()
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=reviews.csv"}
+        )
+    except Exception as e:
+        logger.error(f"Error downloading reviews: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
