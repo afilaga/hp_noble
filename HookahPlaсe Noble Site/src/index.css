@@ -447,6 +447,11 @@ a {
         font-size: 15vw;
     }
 
+    .section-title {
+        font-size: 2.5rem;
+        word-break: break-word;
+    }
+
     .about-grid {
         grid-template-columns: 1fr;
     }
