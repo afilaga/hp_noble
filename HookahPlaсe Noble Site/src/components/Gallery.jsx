@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { motion, useTransform, useScroll } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 
 const galleryImages = [
     '/assets/gallery/Кальянная (1).jpg',
@@ -13,25 +13,49 @@ const galleryImages = [
 ];
 
 const Gallery = () => {
-    const targetRef = useRef(null);
-    const { scrollYProgress } = useScroll({
-        target: targetRef,
-    });
+    const [currentIndex, setCurrentIndex] = useState(0);
 
-    const x = useTransform(scrollYProgress, [0, 1], ["1%", "-95%"]);
+    const nextSlide = () => {
+        setCurrentIndex((prev) => (prev + 1) % galleryImages.length);
+    };
+
+    const prevSlide = () => {
+        setCurrentIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+    };
 
     return (
-        <section id="gallery" ref={targetRef} className="section gallery-section">
-            <div className="gallery-container sticky-wrapper">
+        <section id="gallery" className="section gallery-section">
+            <div className="container">
                 <h2 className="section-title center mb-4">Интерьер</h2>
-                <div className="overflow-hidden">
-                    <motion.div style={{ x }} className="flex gap-4 gallery-track">
-                        {galleryImages.map((src, index) => (
-                            <div key={index} className="gallery-item">
-                                <img src={src} alt={`Interior ${index + 1}`} loading="lazy" />
-                            </div>
-                        ))}
-                    </motion.div>
+                
+                <div className="gallery-wrapper">
+                    <button className="gallery-btn prev" onClick={prevSlide}>&larr;</button>
+                    
+                    <div className="gallery-viewport">
+                        <motion.div 
+                            className="gallery-track-slider"
+                            animate={{ x: `-${currentIndex * 100}%` }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        >
+                            {galleryImages.map((src, index) => (
+                                <div key={index} className="gallery-slide">
+                                    <img src={src} alt={`Interior ${index + 1}`} loading="lazy" />
+                                </div>
+                            ))}
+                        </motion.div>
+                    </div>
+
+                    <button className="gallery-btn next" onClick={nextSlide}>&rarr;</button>
+                </div>
+                
+                <div className="gallery-dots">
+                    {galleryImages.map((_, index) => (
+                        <button 
+                            key={index} 
+                            className={`dot ${index === currentIndex ? 'active' : ''}`}
+                            onClick={() => setCurrentIndex(index)}
+                        />
+                    ))}
                 </div>
             </div>
         </section>

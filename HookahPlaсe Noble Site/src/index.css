@@ -472,49 +472,100 @@ a {
 
 /* --- GALLERY --- */
 .gallery-section {
-    height: 300vh;
-    /* Taller to allow scroll time */
+    padding: 4rem 0;
     position: relative;
-    padding: 0;
 }
 
-.sticky-wrapper {
-    position: sticky;
-    top: 0;
-    height: 100vh;
+.gallery-wrapper {
+    position: relative;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    overflow: hidden;
-    background: var(--bg-color);
+    gap: 1rem;
+    margin-bottom: 2rem;
 }
 
-.gallery-track {
-    display: flex;
-    gap: 2rem;
-    padding-left: 5vw;
-    /* Start with offset */
-}
-
-.gallery-item {
-    min-width: 60vw;
-    /* Large cards */
-    height: 60vh;
-    position: relative;
+.gallery-viewport {
+    width: 100%;
+    max-width: 900px; /* Adjust as needed */
     overflow: hidden;
     border: 1px solid #222;
+    aspect-ratio: 16/9;
 }
 
-.gallery-item img {
+.gallery-track-slider {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.gallery-slide {
+    min-width: 100%;
+    height: 100%;
+}
+
+.gallery-slide img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(40%) contrast(1.1);
-    transition: filter 0.5s var(--easing);
 }
 
-.gallery-item:hover img {
-    filter: grayscale(0%) contrast(1.2);
+.gallery-btn {
+    background: transparent;
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s var(--easing);
+    z-index: 2;
+}
+
+.gallery-btn:hover {
+    background: var(--accent-color);
+    color: #000;
+}
+
+.gallery-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border-color);
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s var(--easing);
+}
+
+.dot.active {
+    background: var(--accent-color);
+}
+
+@media (max-width: 768px) {
+    .gallery-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.5);
+        border: none;
+        color: #fff;
+    }
+    .gallery-btn.prev {
+        left: 10px;
+    }
+    .gallery-btn.next {
+        right: 10px;
+    }
 }
 
 /* --- UTILS --- */
