@@ -1,8 +1,15 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const Marquee = () => {
     return (
-        <div className="marquee-strip">
+        <motion.div 
+            className="marquee-strip"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1 }}
+        >
             <div className="marquee-content">
                 {Array(8).fill(null).map((_, i) => (
                     <React.Fragment key={i}>
@@ -15,7 +22,7 @@ const Marquee = () => {
                     </React.Fragment>
                 ))}
             </div>
-        </div>
+        </motion.div>
     );
 };
 

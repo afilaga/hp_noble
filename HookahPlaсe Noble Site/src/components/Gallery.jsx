@@ -23,9 +23,15 @@ const Gallery = () => {
     return (
         <section id="gallery" className="section gallery-section">
             <div className="container">
-                <h2 className="section-title center mb-4">Интерьер</h2>
-                
-                <div className="gallery-wrapper">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8 }}
+                >
+                    <h2 className="section-title center mb-4">Интерьер</h2>
+                    
+                    <div className="gallery-wrapper">
                     <button className="gallery-btn prev" onClick={prevSlide}>&larr;</button>
                     
                     <div className="gallery-viewport">
@@ -54,6 +60,7 @@ const Gallery = () => {
                         />
                     ))}
                 </div>
+                </motion.div>
             </div>
         </section>
     );
