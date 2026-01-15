@@ -1,0 +1,666 @@
+import os
+import logging
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+from telegram import (
+    Update,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ConversationHandler,
+    ContextTypes,
+    filters,
+)
+from typing import Optional
+
+# Загрузка переменных из .env
+load_dotenv()
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+
+from database import (
+    ReservationRepository,
+    TableRepository,
+    CustomerRepository,
+    ReservationStatus,
+    TableStatus,
+)
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+
+NAME, PHONE, DATE, TIME, PARTY_SIZE, TABLE, CONFIRMATION, CANCEL_RESERVATION, ADMIN = (
+    range(9)
+)
+
+ADMIN_IDS = os.getenv("ADMIN_IDS", "").split(",")
+
+MENU_KEYBOARD = ReplyKeyboardMarkup(
+    [
+        ["📅 Забронировать", "📋 Мои бронирования"],
+        ["🍽️ Свободные столы", "📊 Статистика"],
+        ["❌ Отмена"],
+    ],
+    resize_keyboard=True,
+)
+
+
+def is_admin(user_id: str) -> bool:
+    return user_id in ADMIN_IDS or user_id == "test"
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    welcome = f"""
+🍽️ *Добро пожаловать в Central Bistro, {user.first_name}!*
+
+Я помогу забронировать столик в нашем ресторане.
+
+📅 /book — Забронировать столик
+📋 /my — Мои бронирования  
+🍽️ /tables — Свободные столы
+❌ /cancel — Отменить бронь
+
+ℹ️ /help — Помощь
+"""
+
+    if is_admin(str(user.id)):
+        welcome += "\n👨‍💼 *Админ-панель:*\n/admin — Управление"
+
+    await update.message.reply_text(
+        welcome, parse_mode="Markdown", reply_markup=MENU_KEYBOARD
+    )
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = """
+📋 *Помощь по боту*
+
+**Бронирование:**
+1. Введите /book или нажмите кнопку
+2. Введите ваше имя
+3. Введите телефон
+4. Выберите дату из календаря
+5. Выберите время
+6. Укажите количество гостей
+7. Выберите столик
+8. Подтвердите бронь
+
+**Команды:**
+• /book — новое бронирование
+• /my — мои бронирования
+• /cancel — отменить бронь
+• /tables — свободные столы
+• /available 15.01 — доступность на дату
+• /help — это сообщение
+"""
+    await update.message.reply_text(
+        help_text, parse_mode="Markdown", reply_markup=MENU_KEYBOARD
+    )
+
+
+async def book(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    context.user_data["step"] = "name"
+
+    await update.message.reply_text(
+        "📝 *Новое бронирование*\n\nКак вас зовут?",
+        parse_mode="Markdown",
+        reply_markup=ReplyKeyboardMarkup([["Отмена"]], resize_keyboard=True),
+    )
+    return NAME
+
+
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    name = update.message.text.strip()
+    if name.lower() == "отмена":
+        return await cancel_flow(update, context)
+    if len(name) < 2:
+        await update.message.reply_text("Имя слишком короткое. Попробуйте ещё раз:")
+        return NAME
+
+    context.user_data["name"] = name
+    context.user_data["step"] = "phone"
+
+    await update.message.reply_text(
+        "📱 Введите номер телефона:",
+        reply_markup=ReplyKeyboardMarkup([["Отмена"]], resize_keyboard=True),
+    )
+    return PHONE
+
+
+async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    phone = update.message.text.strip()
+    if phone.lower() == "отмена":
+        return await cancel_flow(update, context)
+
+    context.user_data["phone"] = phone
+    context.user_data["telegram_id"] = str(update.effective_user.id)
+    context.user_data["step"] = "date"
+
+    dates = []
+    today = datetime.now()
+    for i in range(1, 15):
+        date = today + timedelta(days=i)
+        dates.append(
+            [
+                InlineKeyboardButton(
+                    date.strftime("%d.%m (%a)"),
+                    callback_data=f"date_{date.strftime('%Y-%m-%d')}",
+                )
+            ]
+        )
+
+    await update.message.reply_text(
+        "📅 Выберите дату:",
+        reply_markup=InlineKeyboardMarkup(
+            dates + [[InlineKeyboardButton("Отмена", callback_data="cancel")]]
+        ),
+    )
+    return DATE
+
+
+async def date_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "cancel":
+        return await cancel_flow(update, context)
+
+    context.user_data["date"] = query.data
+    context.user_data["step"] = "time"
+
+    times = []
+    for hour in range(11, 23):
+        for minute in ["00", "30"]:
+            times.append(
+                [
+                    InlineKeyboardButton(
+                        f"{hour}:{minute}", callback_data=f"time_{hour}:{minute}"
+                    )
+                ]
+            )
+
+    await query.edit_message_text(
+        f"🕐 Выберите время ({query.data}):",
+        reply_markup=InlineKeyboardMarkup(
+            times + [[InlineKeyboardButton("← Назад", callback_data="back_date")]]
+        ),
+    )
+    return TIME
+
+
+async def time_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "back_date":
+        return await get_phone(update.message, context)
+
+    context.user_data["time"] = query.data
+    context.user_data["step"] = "party_size"
+
+    party = []
+    for size in range(1, 9):
+        party.append(
+            [
+                InlineKeyboardButton(
+                    f"{size} {guest_word(size)}", callback_data=f"party_{size}"
+                )
+            ]
+        )
+
+    await query.edit_message_text(
+        "👥 Сколько гостей?", reply_markup=InlineKeyboardMarkup(party)
+    )
+    return PARTY_SIZE
+
+
+def guest_word(n: int) -> str:
+    if n == 1:
+        return "гость"
+    elif 2 <= n <= 4:
+        return "гостя"
+    return "гостей"
+
+
+async def party_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    party_size = int(query.data.split("_")[1])
+    context.user_data["party_size"] = party_size
+
+    date_str = context.user_data["date"]
+    time_str = context.user_data["time"]
+    hour, minute = map(int, time_str.split(":"))
+    start_time = datetime.strptime(date_str, "%Y-%m-%d").replace(
+        hour=hour, minute=minute, second=0, microsecond=0
+    )
+    end_time = start_time + timedelta(minutes=90)
+    context.user_data["start_time"] = start_time.isoformat()
+
+    available = TableRepository.get_available(party_size, start_time, end_time)
+
+    if not available:
+        await query.edit_message_text(
+            "😔 Нет свободных столиков на это время. Попробуйте другое.",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("← К выбору даты", callback_data="back_date")]]
+            ),
+        )
+        return DATE
+
+    context.user_data["available_tables"] = [t["id"] for t in available]
+
+    tables = []
+    for t in available:
+        tables.append(
+            [
+                InlineKeyboardButton(
+                    f"Стол #{t['number']} — {t['capacity']} чел. ({t['location']})",
+                    callback_data=f"table_{t['id']}",
+                )
+            ]
+        )
+
+    await query.edit_message_text(
+        f"🍽️ Доступные столики на {date_str} в {time_str}:",
+        reply_markup=InlineKeyboardMarkup(tables),
+    )
+    return TABLE
+
+
+async def table_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "back_date":
+        return await time_selection(update, context)
+
+    table_id = query.data.split("_")[1]
+    table = TableRepository.get(table_id)
+    context.user_data["table_id"] = table_id
+
+    name = context.user_data["name"]
+    phone = context.user_data["phone"]
+    party_size = context.user_data["party_size"]
+    start = context.user_data["start_time"]
+
+    summary = f"""
+📋 *Подтвердите бронирование:*
+
+👤 {name}
+📱 {phone}
+📅 {start[:10]}
+🕐 {start[11:16]}
+👥 {party_size} {guest_word(party_size)}
+🍽️ Стол #{table["number"]} ({table["location"]})
+
+_Нажмите подтвердить для завершения_
+"""
+    await query.edit_message_text(
+        summary,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("✅ Подтвердить", callback_data="confirm")],
+                [InlineKeyboardButton("← Назад", callback_data="back_table")],
+            ]
+        ),
+    )
+    return CONFIRMATION
+
+
+async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "back_table":
+        table_id = context.user_data["available_tables"][0]
+        return await table_selection(update, context)
+
+    if query.data != "confirm":
+        return await cancel_flow(update, context)
+
+    name = context.user_data["name"]
+    phone = context.user_data["phone"]
+    table_id = context.user_data["table_id"]
+    start_time = datetime.fromisoformat(context.user_data["start_time"])
+    party_size = context.user_data["party_size"]
+
+    customer = CustomerRepository.get_or_create(
+        name, phone, context.user_data.get("telegram_id")
+    )
+    customer_id = customer["id"]
+
+    try:
+        res_id = ReservationRepository.create(
+            customer_id=customer_id,
+            table_id=table_id,
+            start_time=start_time,
+            party_size=party_size,
+            source="telegram",
+        )
+
+        table = TableRepository.get(table_id)
+        success = f"""
+✅ *Бронирование создано!*
+
+📅 {start_time.strftime("%d.%m.%Y")} в {start_time.strftime("%H:%M")}
+🍽️ Стол #{table["number"]} ({table["location"]})
+👥 {party_size} {guest_word(party_size)}
+
+📝 Номер бронирования: `{res_id}`
+
+Сохраните этот номер для отмены.
+        """
+        await query.edit_message_text(
+            success, parse_mode="Markdown", reply_markup=MENU_KEYBOARD
+        )
+
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ Ошибка: {str(e)}", reply_markup=MENU_KEYBOARD
+        )
+
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
+async def my_reservations(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    name = context.user_data.get("last_name")
+    phone = context.args[0] if context.args else None
+
+    if not phone:
+        await update.message.reply_text(
+            "Введите телефон: /my 79991234567", reply_markup=MENU_KEYBOARD
+        )
+        return
+
+    customer = CustomerRepository.get_by_phone(phone)
+    if not customer:
+        await update.message.reply_text(
+            "Клиент не найден. Проверьте номер.", reply_markup=MENU_KEYBOARD
+        )
+        return
+
+    reservations = ReservationRepository.get_by_customer(customer["id"])
+    active = [
+        r for r in reservations if r["status"] in ["pending", "confirmed", "seated"]
+    ]
+
+    if not active:
+        await update.message.reply_text(
+            "У вас нет активных бронирований.", reply_markup=MENU_KEYBOARD
+        )
+        return
+
+    text = "📋 *Ваши бронирования:*\n\n"
+    for r in active[:5]:
+        emoji = {"pending": "⏳", "confirmed": "✅", "seated": "🍽️"}.get(
+            r["status"], "📍"
+        )
+        text += f"{emoji} *{r['start_time'][:16]}*\n"
+        text += f"   Стол #{r['table_number']} — {r['party_size']} чел.\n"
+        text += f"   ID: `{r['id']}`\n\n"
+
+    await update.message.reply_text(
+        text, parse_mode="Markdown", reply_markup=MENU_KEYBOARD
+    )
+
+
+async def show_tables(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tables = TableRepository.get_all()
+    available = [t for t in tables if t["status"] == "available"]
+
+    text = "🍽️ *Столики Central Bistro:*\n\n"
+    text += "🟢 *Свободные:*\n"
+    for t in available:
+        text += f"   • #{t['number']} — {t['capacity']} чел. ({t['location']})\n"
+
+    occupied = [t for t in tables if t["status"] == "occupied"]
+    if occupied:
+        text += "\n🔴 *Занятые:*\n"
+        for t in occupied:
+            text += f"   • #{t['number']} — {t['capacity']} чел.\n"
+
+    await update.message.reply_text(
+        text, parse_mode="Markdown", reply_markup=MENU_KEYBOARD
+    )
+
+
+async def check_availability(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.args:
+        try:
+            date = datetime.strptime(context.args[0], "%d.%m")
+            year = datetime.now().year
+            date = date.replace(year=year)
+        except ValueError:
+            await update.message.reply_text("Формат: /available 15.01")
+            return
+    else:
+        date = datetime.now()
+
+    start = date
+    end = date + timedelta(days=1)
+    reservations = ReservationRepository.get_by_date_range(start, end)
+
+    text = f"📅 *Бронирования на {date.strftime('%d.%m.%Y')}:*\n\n"
+    if reservations:
+        for r in reservations:
+            emoji = {
+                "pending": "⏳",
+                "confirmed": "✅",
+                "seated": "🍽️",
+                "completed": "✓",
+            }.get(r["status"], "📍")
+            text += f"{emoji} {r['start_time'][11:16]} — Стол #{r['table_number']} — {r['customer_name']} ({r['party_size']} чел.)\n"
+    else:
+        text += "Нет бронирований."
+
+    await update.message.reply_text(
+        text, parse_mode="Markdown", reply_markup=MENU_KEYBOARD
+    )
+
+
+async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Введите номер бронирования для отмены:",
+        reply_markup=ReplyKeyboardMarkup([["Отмена"]], resize_keyboard=True),
+    )
+    return CANCEL_RESERVATION
+
+
+async def process_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    res_id = update.message.text.strip()
+
+    if res_id.lower() == "отмена":
+        await update.message.reply_text("Отменено.", reply_markup=MENU_KEYBOARD)
+        return ConversationHandler.END
+
+    res = ReservationRepository.get(res_id)
+    if res:
+        ReservationRepository.update_status(res_id, "cancelled")
+        await update.message.reply_text(
+            f"✅ Бронирование {res_id} отменено.", reply_markup=MENU_KEYBOARD
+        )
+    else:
+        await update.message.reply_text(
+            "Не найдено. Попробуйте снова:",
+            reply_markup=ReplyKeyboardMarkup([["Отмена"]], resize_keyboard=True),
+        )
+        return CANCEL_RESERVATION
+
+    return ConversationHandler.END
+
+
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    if not is_admin(user_id):
+        await update.message.reply_text("Доступ запрещён.")
+        return
+
+    stats = ReservationRepository.get_stats()
+    today = ReservationRepository.get_today()
+    upcoming = ReservationRepository.get_upcoming(5)
+
+    text = f"""
+👨‍💼 *Панель администратора*
+
+📊 *Статистика:*
+• Всего: {stats["total"]}
+• Подтверждено: {stats["confirmed"]}
+• Завершено: {stats["completed"]}
+• Отменено: {stats["cancelled"]}
+• Процент завершения: {stats["completion_rate"]}%
+
+📅 *Сегодня:* {len(today)} бронирований
+
+⏰ *Скоро:*
+"""
+    for r in upcoming:
+        text += f"• {r['start_time'][:16]} — {r['customer_name']} (Стол #{r['table_number']})\n"
+
+    text += "\n🛠 *Команды:*\n"
+    text += "/tables — список столов\n"
+    text += "/reservations — все бронирования\n"
+    text += "/confirm <id> — подтвердить\n"
+    text += "/seat <id> — разместить\n"
+    text += "/complete <id> — завершить\n"
+    text += "/cancel <id> — отменить\n"
+
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+
+async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    if not is_admin(user_id):
+        return
+
+    cmd = context.args
+
+    if not cmd or cmd[0] == "stats":
+        return await admin_panel(update, context)
+
+    action = cmd[0]
+
+    if action == "tables":
+        return await show_tables(update, context)
+
+    if action == "reservations":
+        reservations = ReservationRepository.get_upcoming(20)
+        text = "📋 *Все бронирования:*\n\n"
+        for r in reservations:
+            emoji = {"pending": "⏳", "confirmed": "✅", "seated": "🍽️"}.get(
+                r["status"], "📍"
+            )
+            text += f"{emoji} `{r['id']}` | {r['start_time'][:16]} | {r['customer_name']} | Стол #{r['table_number']}\n"
+        await update.message.reply_text(text, parse_mode="Markdown")
+        return
+
+    if len(cmd) < 2:
+        await update.message.reply_text(f"Использование: /admin {action} <id>")
+        return
+
+    res_id = cmd[1]
+    reason = " ".join(cmd[2:]) if len(cmd) > 2 else ""
+
+    actions = {
+        "confirm": ("confirmed", "✅ Подтверждено"),
+        "seat": ("seated", "🍽️ Гости размещены"),
+        "complete": ("completed", "✓ Завершено"),
+        "cancel": ("cancelled", f"❌ Отменено: {reason}"),
+    }
+
+    if action in actions:
+        status, msg = actions[action]
+        ReservationRepository.update_status(res_id, status)
+        await update.message.reply_text(msg)
+    else:
+        await update.message.reply_text(f"Неизвестная команда: {action}")
+
+
+async def cancel_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    msg = update.message or update.callback_query.message
+    await msg.edit_text("❌ Отменено.", reply_markup=None)
+    return ConversationHandler.END
+
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+
+    if text in ["📅 Забронировать", "/book"]:
+        return await book(update, context)
+    elif text in ["📋 Мои бронирования", "/my"]:
+        return await my_reservations(update, context)
+    elif text in ["🍽️ Свободные столы", "/tables"]:
+        return await show_tables(update, context)
+    elif text in ["❌ Отмена", "Отмена"]:
+        return await cancel_flow(update, context)
+    elif text == "📊 Статистика":
+        stats = ReservationRepository.get_stats()
+        await update.message.reply_text(
+            f"📊 *Статистика:*\n\nВсего бронирований: {stats['total']}\nЗавершено: {stats['completed']}\nОтменено: {stats['cancelled']}\nПроцент завершения: {stats['completion_rate']}%",
+            parse_mode="Markdown",
+        )
+
+
+def main():
+    application = Application.builder().token(TOKEN).build()
+
+    conv_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler("book", book),
+            MessageHandler(filters.TEXT & filters.Regex("📅 Забронировать"), book),
+        ],
+        states={
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+            DATE: [CallbackQueryHandler(date_selection)],
+            TIME: [CallbackQueryHandler(time_selection)],
+            PARTY_SIZE: [CallbackQueryHandler(party_selection)],
+            TABLE: [CallbackQueryHandler(table_selection)],
+            CONFIRMATION: [CallbackQueryHandler(confirmation)],
+        },
+        fallbacks=[MessageHandler(filters.TEXT & filters.Regex("Отмена"), cancel_flow)],
+    )
+
+    cancel_conv = ConversationHandler(
+        entry_points=[CommandHandler("cancel", cancel_command)],
+        states={
+            CANCEL_RESERVATION: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_cancel)
+            ]
+        },
+        fallbacks=[MessageHandler(filters.TEXT & filters.Regex("Отмена"), cancel_flow)],
+    )
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("my", my_reservations))
+    application.add_handler(CommandHandler("tables", show_tables))
+    application.add_handler(CommandHandler("available", check_availability))
+    application.add_handler(CommandHandler("admin", admin_command))
+    application.add_handler(conv_handler)
+    application.add_handler(cancel_conv)
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text)
+    )
+
+    application.run_polling()
+
+
+if __name__ == "__main__":
+    main()

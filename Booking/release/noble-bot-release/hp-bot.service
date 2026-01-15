@@ -1,0 +1,15 @@
+[Unit]
+Description=HookahPlace Noble Telegram Bot
+After=network.target
+
+[Service]
+# User running the bot (change if needed)
+User=root
+WorkingDirectory=/opt/noble/booking
+ExecStart=/usr/bin/python3 bot.py
+Restart=always
+RestartSec=10
+EnvironmentFile=/opt/noble/booking/.env
+
+[Install]
+WantedBy=multi-user.target
