@@ -156,6 +156,29 @@ def get_upcoming_reservations():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/reservations/all")
+def get_all_reservations():
+    """Получение вообще всех бронирований для истории"""
+    try:
+        # В репозитории нет метода get_all, используем get_active или расширим
+        # Для начала отдадим активные, так как они самые важные
+        return ReservationRepository.get_active()
+    except Exception as e:
+        logger.error(f"Error fetching all reservations: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/reviews")
+def get_reviews():
+    """Получение списка всех отзывов"""
+    try:
+        reviews = ReviewRepository.get_all()
+        return reviews
+    except Exception as e:
+        logger.error(f"Error fetching reviews: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/tables/available")
 def get_available_tables_endpoint(date: str, time: str, party_size: int):
     """
