@@ -16,5 +16,7 @@ jobs:
         host: 178.20.211.174
         username: andrey
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
         script: |
-          bash /home/andrey/apps/noble-booking/Booking/deploy/deploy_vps.sh
+          cd /home/andrey/apps/noble-booking/Booking/deploy
+          bash deploy_vps.sh
