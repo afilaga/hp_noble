@@ -79,6 +79,6 @@ Ensure your MySQL database is accessible from the VPS IP (`178.20.211.174`).
      - **Important**: The API is on the VPS (`http://178.20.211.174:8000` or via domain `https://api.hpnoble.ru` if configured).
      - Update `.env` for frontend build:
        ```
-       VITE_API_BASE=http://178.20.211.174:8000/api
+       VITE_API_BASE=https://api.hpnoble.ru/api
        ```
      - Rebuild: `npm run build`
