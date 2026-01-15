@@ -94,12 +94,13 @@ a {
     top: 0;
     left: 0;
     width: 100%;
-    padding: 2rem 3rem;
+    padding: 1.5rem 3rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    z-index: 100;
+    z-index: 1000;
     mix-blend-mode: difference;
+    background: transparent;
 }
 
 .nav-logo img {
@@ -118,6 +119,7 @@ a {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     position: relative;
+    color: #FFF;
 }
 
 .nav-item::after {
@@ -137,6 +139,12 @@ a {
 
 .mobile-menu-btn {
     display: none;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem 1.5rem;
+    }
 }
 
 /* --- HERO SECTION --- */
@@ -230,11 +238,26 @@ a {
     font-size: 0.8rem;
     letter-spacing: 0.1em;
     transition: all 0.4s var(--easing);
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    cursor: pointer;
 }
 
 .btn:hover {
     background: var(--accent-color);
     color: #000;
+    box-shadow: 0 0 20px rgba(198, 168, 124, 0.4);
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: #000;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 25px rgba(198, 168, 124, 0.6);
 }
 
 /* --- SECTIONS --- */

@@ -8,7 +8,7 @@ const ReservationForm = () => {
     const [time, setTime] = useState('');
     const [guests, setGuests] = useState(2);
     const [name, setName] = useState('');
-    const [phone, setPhone] = useState('');
+    const [phone, setPhone] = useState('+7');
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
@@ -20,6 +20,16 @@ const ReservationForm = () => {
         tomorrow.setDate(tomorrow.getDate() + 1);
         setDate(tomorrow.toISOString().split('T')[0]);
     }, []);
+
+    const handlePhoneChange = (e) => {
+        let val = e.target.value;
+        if (!val.startsWith('+7')) {
+            val = '+7';
+        }
+        // Ограничиваем только цифрами после +7
+        const numbers = val.slice(2).replace(/\D/g, '');
+        setPhone('+7' + numbers.slice(0, 10));
+    };
 
     // Отправка брони (стол подбирается автоматически)
     const submitReservation = async () => {
@@ -64,7 +74,7 @@ const ReservationForm = () => {
     const resetForm = () => {
         setSubmitted(false);
         setName('');
-        setPhone('');
+        setPhone('+7');
         setTime('');
         setGuests(2);
         const tomorrow = new Date();
@@ -163,7 +173,7 @@ const ReservationForm = () => {
                                         <input
                                             type="tel"
                                             value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
+                                            onChange={handlePhoneChange}
                                             placeholder="+7 (___) ___-__-__"
                                         />
                                     </div>
