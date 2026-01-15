@@ -32,40 +32,52 @@ const ReservationForm = () => {
             setPhone('+7' + numbers.slice(0, 10));
         };
     
-        // Отправка брони (стол подбирается автоматически)
-        const submitReservation = async () => {
-            if (!name || !phone || !date || !time) {
-                setError('Заполните все поля');
-                return;
-            }
-            setLoading(true);
-            setError('');
-            try {
-                const res = await fetch(`${API_BASE}/reservation/create`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        phone,
-                        table_id: 'any', // Автоподбор стола на бэкенде
-                        date,
-                        time,
-                        guests,
-                        comment
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    setSubmitted(true);
-                } else {
-                    setError(data.detail || data.error || 'Ошибка бронирования');
+            // Отправка брони (стол подбирается автоматически)
+            const submitReservation = async () => {
+                if (!date || !time) {
+                    setError('Выберите дату и время');
+                    return;
                 }
-            } catch (err) {
-                setError('Ошибка сети. Попробуйте позже.');
-            }
-            setLoading(false);
-        };
-    
+                if (!name || name.length < 2) {
+                    setError('Введите ваше имя');
+                    return;
+                }
+                if (phone.length < 12) {
+                    setError('Введите корректный номер телефона');
+                    return;
+                }
+                if (!consent) {
+                    setError('Необходимо согласие на обработку данных');
+                    return;
+                }
+        
+                setLoading(true);
+                setError('');
+                try {
+                    const res = await fetch(`${API_BASE}/reservation/create`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name,
+                            phone,
+                            table_id: 'any', // Автоподбор стола на бэкенде
+                            date,
+                            time,
+                            guests,
+                            comment
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        setSubmitted(true);
+                    } else {
+                        setError(data.detail || data.error || 'Ошибка бронирования');
+                    }
+                } catch (err) {
+                    setError('Ошибка сети. Попробуйте позже.');
+                }
+                setLoading(false);
+            };    
         // Генерация временных слотов
         const timeSlots = [];
         for (let h = 12; h <= 23; h++) {
@@ -223,7 +235,7 @@ const ReservationForm = () => {
                                 <button
                                     className="btn btn-primary"
                                     onClick={submitReservation}
-                                    disabled={!date || !time || !name || !phone || !consent || loading}
+                                    disabled={loading}
                                 >
                                     {loading ? 'Отправка...' : 'Забронировать'}
                                 </button>
