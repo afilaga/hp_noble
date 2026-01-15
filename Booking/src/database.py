@@ -143,9 +143,23 @@ def init_db():
         """)
         
         # Indexes
-        cursor.execute("CREATE INDEX idx_reservations_date ON reservations(start_time)")
-        cursor.execute("CREATE INDEX idx_reservations_status ON reservations(status)")
-        cursor.execute("CREATE INDEX idx_customers_phone ON customers(phone)")
+        try:
+            cursor.execute("CREATE INDEX idx_reservations_date ON reservations(start_time)")
+        except mysql.connector.Error as err:
+            if err.errno != 1061:  # Duplicate key name
+                raise
+
+        try:
+            cursor.execute("CREATE INDEX idx_reservations_status ON reservations(status)")
+        except mysql.connector.Error as err:
+            if err.errno != 1061:
+                raise
+
+        try:
+            cursor.execute("CREATE INDEX idx_customers_phone ON customers(phone)")
+        except mysql.connector.Error as err:
+            if err.errno != 1061:
+                raise
         
         cursor.close()
 

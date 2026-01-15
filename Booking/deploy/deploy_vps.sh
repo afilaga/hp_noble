@@ -6,11 +6,17 @@ VENV_DIR="$APP_DIR/venv"
 SERVICE_BOT="hp-bot.service"
 SERVICE_API="hp-api.service"
 
-echo "🚀 Starting Deployment on VPS..."
+echo "🚀 Starting Deployment from GitHub..."
 
-# 1. Setup Virtual Environment
-echo "🐍 Checking Python environment..."
+# 1. Update Code
 cd $APP_DIR
+echo "📂 Pulling latest code..."
+git pull origin main
+
+# 2. Setup/Update Virtual Environment
+echo "🐍 Updating Python environment..."
+# Backend is in Booking subfolder in this repo
+cd $APP_DIR/Booking
 
 if [ ! -d "$VENV_DIR" ]; then
     echo "Creating virtualenv..."
@@ -22,16 +28,14 @@ echo "Installing dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 2. Setup Systemd Services
-echo "⚙️ Configuring Systemd..."
-sudo cp $APP_DIR/deploy/$SERVICE_BOT /etc/systemd/system/
-sudo cp $APP_DIR/deploy/$SERVICE_API /etc/systemd/system/
+# 3. Setup Systemd Services (if changed)
+echo "⚙️ Refreshing Systemd configs..."
+sudo cp $APP_DIR/Booking/deploy/$SERVICE_BOT /etc/systemd/system/
+sudo cp $APP_DIR/Booking/deploy/$SERVICE_API /etc/systemd/system/
 
 sudo systemctl daemon-reload
-sudo systemctl enable $SERVICE_BOT
-sudo systemctl enable $SERVICE_API
 
-# 3. Restart Services
+# 4. Restart Services
 echo "🔄 Restarting Services..."
 sudo systemctl restart $SERVICE_BOT
 sudo systemctl restart $SERVICE_API
