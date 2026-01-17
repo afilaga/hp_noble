@@ -63,8 +63,8 @@ const ReservationForm = () => {
                             table_id: 'any', // Автоподбор стола на бэкенде
                             date,
                             time,
-                            guests,
-                            comment
+                            party_size: guests,
+                            special_requests: comment ? [comment] : []
                         })
                     });
                     const data = await res.json();

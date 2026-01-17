@@ -61,7 +61,7 @@ npm install
 Создайте файл `.env` в корне проекта (если нет):
 ```env
 # URL бэкенда для API запросов (бронирование)
-VITE_API_BASE=http://localhost:8000/api
+VITE_API_BASE=https://whooks.filatiev.pro/webhook
 ```
 
 ### 3. Локальная разработка
