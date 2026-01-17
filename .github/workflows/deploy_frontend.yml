@@ -27,7 +27,7 @@ jobs:
         working-directory: './HookahPlaсe Noble Site'
         run: npm run build
         env:
-          VITE_API_BASE: "https://whooks.filatiev.pro/webhook"
+          VITE_API_BASE: "https://whooks.filatiev.pro/webhook/noble"
 
       - name: Deploy to Hosting via SCP
         uses: appleboy/scp-action@master
