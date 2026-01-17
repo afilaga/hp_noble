@@ -1,12 +1,26 @@
+# ⚠️ DEPRECATED: HookahPlace Noble — Booking System (Python/FastAPI)
+
+> **STATUS: DEPRECATED & STOPPED** (Jan 2026)
+> This Python implementation has been replaced by an **n8n workflow automation**.
+> Please refer to the `module booking/n8n-migration` directory for the active system.
+
+---
+
+## ⛔ Legacy Documentation Below
+
+The documentation below describes the **old** Python architecture. It is kept for archival purposes only.
+
+---
+
 # HookahPlace Noble — Booking System & Bot
 
 Центральный модуль бронирования для HookahPlace Noble. Включает в себя Telegram бота, Backend API (FastAPI) для сайта и базу данных.
 
-**Статус**: Pre-deploy (Готов к развертыванию)
+**Статус**: **DEPRECATED** (Заменено на n8n)
 
 ---
 
-## 🏗 Архитектура
+## 🏗 Архитектура (Legacy)
 
 Система построена на микросервисной архитектуре, упакованной в Docker:
 

@@ -1,22 +1,28 @@
-name: Deploy Backend to VPS
+name: Deploy Backend to VPS (DEPRECATED)
+
+# ⚠️ DEPRECATED: Backend logic migrated to n8n.
+# This workflow is disabled to prevent redeploying the old Python backend.
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'Booking/**'
+  workflow_dispatch:  # Only manual trigger allowed for historical reasons
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'Booking/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: 178.20.211.174
-        username: andrey
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        script: |
-          cd /home/andrey/apps/noble-booking/Booking/deploy
-          bash deploy_vps.sh
+    - name: Deploy via SSH (Disabled)
+      run: echo "Deployment disabled. Backend is now running on n8n."
+    # - name: Deploy via SSH
+    #   uses: appleboy/ssh-action@master
+    #   with:
+    #     host: 178.20.211.174
+    #     username: andrey
+    #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+    #     port: 22
+    #     script: |
+    #       cd /home/andrey/apps/noble-booking/Booking/deploy
+    #       bash deploy_vps.sh

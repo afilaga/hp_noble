@@ -1,29 +1,41 @@
 # 🤖 Agent Role: VPS_OPS (Backend & Infrastructure)
 
-**Focus**: Server `178.20.211.174`, CI/CD via GitHub, MariaDB, Nginx/HAProxy.
-**Work Directory**: `/home/andrey/apps/noble-booking`
+**Focus**: Server `178.20.211.174`, Automation via n8n.
+**Work Directory**: `/home/andrey/apps/noble-booking` (Legacy/Backup)
 
 ## 📋 System Context
 - **OS**: Ubuntu 24.04 LTS
-- **Stack**: FastAPI (Python 3.12), MariaDB, Telegram Bot (python-telegram-bot).
+- **Stack**: **n8n** (Node.js workflow automation), SQLite.
 - **Domains**: 
-  - API: `https://api.hpnoble.ru` (Internal port 8000)
-  - Proxy Chain: HAProxy(443) -> Nginx(8448) -> Uvicorn(8000).
-- **CI/CD**: Auto-deploy on `git push origin main` via GitHub Actions.
+  - API/Webhooks: `https://whooks.filatiev.pro`
+- **Architecture**:
+  - **n8n** handles all logic (Telegram Bot + REST API).
+  - **SQLite** (`/var/lib/n8n/reservations.db`) stores data.
+- **Legacy Python**: **DEPRECATED & STOPPED**.
 
 ## 🛠 Operation Rules
-1. **Deployment**: Prefer GitHub Push. If manual update is needed:
-   `ssh andrey@178.20.211.174 "bash /home/andrey/apps/noble-booking/Booking/deploy/deploy_vps.sh"`
-2. **Database**: MariaDB is local. Config is in `src/.env`.
-3. **SSL**: Managed by Certbot on Nginx. HAProxy handles TCP passthrough via SNI.
-4. **Logs**:
-   - `sudo journalctl -u hp-api -f`
-   - `sudo journalctl -u hp-bot -f`
+1. **n8n Management**:
+   - Access: `https://whooks.filatiev.pro` (Web UI)
+   - Restart: `sudo systemctl restart n8n` (or `pm2 restart n8n`)
+   - Logs: `journalctl -u n8n -f` (or check "Executions" in UI)
+2. **Workflows**:
+   - **Telegram Bot**: Handles all chat interactions via Webhook.
+   - **REST API**: Handles website booking requests via Webhooks.
+3. **Database**: 
+   - Path: `/var/lib/n8n/reservations.db`
+   - Backup: Ensure this file is included in regular backups.
 
 ## ⚠️ Critical Configs
-- **CORS**: Must include `https://hpnoble.ru` in `src/.env`.
-- **Nginx Config**: `/etc/nginx/sites-available/noble-api` (Listen 8448).
-- **HAProxy Config**: `/etc/haproxy/haproxy.cfg` (SNI routing for api.hpnoble.ru).
+- **Env Vars**: Managed within n8n Credentials or system environment variables for n8n service.
+- **Webhooks**: Ensure Frontend points to `https://whooks.filatiev.pro/webhook/...`.
+- **Bot Token**: Configured in n8n Credentials (`Telegram Bot - Central Bistro`).
+
+## 🔄 Emergency Procedures
+### Bot Not Responding
+1. Check n8n Executions log for errors.
+2. Verify Webhook: `curl https://api.telegram.org/bot<TOKEN>/getWebhookInfo`
+3. Restart n8n: `sudo systemctl restart n8n`
 
 ## ✅ Verification
-Always run: `curl https://api.hpnoble.ru/api/health` after changes.
+- **API Check**: `curl https://whooks.filatiev.pro/webhook/tables`
+- **Bot Check**: Send `/start` to `@hp_noble_bot`
