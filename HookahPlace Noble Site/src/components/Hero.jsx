@@ -8,7 +8,15 @@ const Hero = () => {
         <section className="hero">
             <LiquidBackground />
             <div className="hero-content">
-                <div className="hero-logo-container">
+                <motion.div
+                    className="hero-logo-container"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                        duration: 1.2,
+                        ease: [0.2, 1, 0.3, 1]
+                    }}
+                >
                     <LiquidMetal
                         width={window.innerWidth > 768 ? 400 : 250}
                         height={window.innerWidth > 768 ? 160 : 100}
@@ -27,22 +35,30 @@ const Hero = () => {
                         scale={0.6}
                         fit="contain"
                     />
-                </div>
+                </motion.div>
 
                 <motion.p
                     className="hero-subtitle"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 1.2 }}
+                    transition={{
+                        duration: 1,
+                        delay: 0.8,
+                        ease: [0.2, 1, 0.3, 1]
+                    }}
                 >
                     Премиальный лаунж в сердце Сочи
                 </motion.p>
 
                 <motion.div
                     className="hero-cta"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 1.4 }}
+                    transition={{
+                        duration: 1,
+                        delay: 1,
+                        ease: [0.2, 1, 0.3, 1]
+                    }}
                 >
                     <a href="#reservation" className="btn btn-primary">Забронировать</a>
                 </motion.div>

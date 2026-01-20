@@ -3,6 +3,7 @@ import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 
 const Navbar = () => {
     const [hidden, setHidden] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const { scrollY } = useScroll();
 
     useMotionValueEvent(scrollY, "change", (latest) => {
@@ -12,11 +13,17 @@ const Navbar = () => {
         } else {
             setHidden(false);
         }
+
+        if (latest > 50) {
+            setScrolled(true);
+        } else {
+            setScrolled(false);
+        }
     });
 
     return (
-        <motion.nav 
-            className="navbar"
+        <motion.nav
+            className={`navbar ${scrolled ? 'scrolled' : ''}`}
             variants={{
                 visible: { y: 0 },
                 hidden: { y: "-100%" },

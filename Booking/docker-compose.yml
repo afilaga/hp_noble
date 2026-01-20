@@ -1,24 +1,10 @@
 version: '3.8'
 
 services:
-  noble-backend:
-    build: .
-    container_name: noble_backend
-    restart: always
-    volumes:
-      - ./data:/app/data
-    env_file:
-      - .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - DB_PATH=/app/data/reservations.db
-
   noble-frontend:
-    build: ../HookahPlaсe Noble Site
+    build: ../HookahPlace Noble Site
     container_name: noble_frontend
     restart: always
-    depends_on:
-      - noble-backend
     volumes:
       # Mount config
       - ./nginx/app.conf:/etc/nginx/conf.d/default.conf

@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'HookahPlaсe Noble Site/**'
+      - 'HookahPlace Noble Site/**'
 
 jobs:
   deploy:
@@ -20,14 +20,14 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        working-directory: './HookahPlaсe Noble Site'
+        working-directory: './HookahPlace Noble Site'
         run: npm ci
 
       - name: Build Project
-        working-directory: './HookahPlaсe Noble Site'
+        working-directory: './HookahPlace Noble Site'
         run: npm run build
         env:
-          VITE_API_BASE: "https://whooks.filatiev.pro/webhook/noble"
+          VITE_API_BASE: "https://api.hpnoble.ru/api"
 
       - name: Deploy to Hosting via SCP
         uses: appleboy/scp-action@master
@@ -36,7 +36,7 @@ jobs:
           username: ${{ secrets.HOSTING_USERNAME }}
           password: ${{ secrets.HOSTING_PASSWORD }}
           port: 22
-          source: "HookahPlaсe Noble Site/dist/*"
+          source: "HookahPlace Noble Site/dist/*"
           target: "www/hpnoble.ru"
           strip_components: 2
-          rm: true # Clean target directory before upload (optional, be careful)
+          rm: true
