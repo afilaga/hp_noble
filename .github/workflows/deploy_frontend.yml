@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'HookahPlace Noble Site/**'
+      - 'hp-noble-site/**'
 
 jobs:
   deploy:
@@ -20,14 +20,17 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        working-directory: './HookahPlace Noble Site'
+        working-directory: './hp-noble-site'
         run: npm ci
 
       - name: Build Project
-        working-directory: './HookahPlace Noble Site'
+        working-directory: './hp-noble-site'
         run: npm run build
         env:
           VITE_API_BASE: "https://api.hpnoble.ru/api"
+
+      - name: Verify Build
+        run: ls -la hp-noble-site/dist/
 
       - name: Deploy to Hosting via SCP
         uses: appleboy/scp-action@master
@@ -36,7 +39,7 @@ jobs:
           username: ${{ secrets.HOSTING_USERNAME }}
           password: ${{ secrets.HOSTING_PASSWORD }}
           port: 22
-          source: "HookahPlace Noble Site/dist/*"
+          source: "hp-noble-site/dist/*"
           target: "www/hpnoble.ru"
           strip_components: 2
           rm: true
