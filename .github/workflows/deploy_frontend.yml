@@ -27,7 +27,7 @@ jobs:
         working-directory: './hp-noble-site'
         run: npm run build
         env:
-          VITE_API_BASE: "https://whooks.filatiev.pro/webhook"
+          VITE_API_BASE: "https://whooks.filatiev.pro/webhook/noble"
 
       - name: Verify Build
         run: ls -la hp-noble-site/dist/
