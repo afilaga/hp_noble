@@ -43,3 +43,4 @@ jobs:
           target: "www/hpnoble.ru"
           strip_components: 2
           rm: true
+          debug: true

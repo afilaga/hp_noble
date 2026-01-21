@@ -9,7 +9,7 @@ ssh andrey@178.20.211.174 'echo "andrey:meqFecdGNPO4s8Qk"
 домен hpnoble.ru
 Хостинг/SSH/SFTP:
 Логин: u3370970
-Пароль: KzWR76Fe3f7h8b7C
+Пароль: KzWR76Fe3f7H8b7C
 Панель: Ispmanager (https://server288.hosting.reg.ru:1500/)
 
 FTP:
